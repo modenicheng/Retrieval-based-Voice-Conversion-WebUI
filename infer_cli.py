@@ -34,25 +34,27 @@ args = parser.parse_args()
 
 # yapf: enable
 
-class Config:
 
+class Config:
     def __init__(self, device, is_half):
         self.device = device
         self.is_half = is_half
         self.n_cpu = 0
         self.gpu_name = None
         self.gpu_mem = None
-        self.x_pad, self.x_query, self.x_center, self.x_max = self.device_config(
-        )
+        self.x_pad, self.x_query, self.x_center, self.x_max = self.device_config()
 
     def device_config(self) -> tuple:
         if torch.cuda.is_available():
             i_device = int(self.device.split(":")[-1])
             self.gpu_name = torch.cuda.get_device_name(i_device)
-            if (("16" in self.gpu_name and "V100" not in self.gpu_name.upper())
-                    or "P40" in self.gpu_name.upper()
-                    or "1060" in self.gpu_name or "1070" in self.gpu_name
-                    or "1080" in self.gpu_name):
+            if (
+                ("16" in self.gpu_name and "V100" not in self.gpu_name.upper())
+                or "P40" in self.gpu_name.upper()
+                or "1060" in self.gpu_name
+                or "1070" in self.gpu_name
+                or "1080" in self.gpu_name
+            ):
                 print("16系/10系显卡和P40强制单精度")
                 self.is_half = False
                 for config_file in ["32k.json", "40k.json", "48k.json"]:
@@ -67,8 +69,12 @@ class Config:
             else:
                 self.gpu_name = None
             self.gpu_mem = int(
-                torch.cuda.get_device_properties(i_device).total_memory /
-                1024 / 1024 / 1024 + 0.4)
+                torch.cuda.get_device_properties(i_device).total_memory
+                / 1024
+                / 1024
+                / 1024
+                + 0.4
+            )
             if self.gpu_mem <= 4:
                 with open("trainset_preprocess_pipeline_print.py", "r") as f:
                     strr = f.read().replace("3.7", "3.0")
@@ -137,38 +143,55 @@ def load_hubert():
     )
     hubert_model = models[0]
     hubert_model = hubert_model.to(args.device)
-    if (args.is_half): hubert_model = hubert_model.half()
-    else: hubert_model = hubert_model.float()
+    if args.is_half:
+        hubert_model = hubert_model.half()
+    else:
+        hubert_model = hubert_model.float()
     hubert_model.eval()
 
 
-def vc_single(sid, input_audio, f0_up_key, f0_file, f0_method, file_index,
-              index_rate, filter_radius, resample_sr, rms_mix_rate, version):
+def vc_single(
+    sid,
+    input_audio,
+    f0_up_key,
+    f0_file,
+    f0_method,
+    file_index,
+    index_rate,
+    filter_radius,
+    resample_sr,
+    rms_mix_rate,
+    version,
+):
     global tgt_sr, net_g, vc, hubert_model
-    if input_audio is None: return "You need to upload an audio", None
+    if input_audio is None:
+        return "You need to upload an audio", None
     f0_up_key = int(f0_up_key)
     audio = load_audio(input_audio, 16000)
     times = [0, 0, 0]
-    if (hubert_model == None): load_hubert()
+    if hubert_model == None:
+        load_hubert()
     if_f0 = cpt.get("f0", 1)
     # audio_opt=vc.pipeline(hubert_model,net_g,sid,audio,times,f0_up_key,f0_method,file_index,file_big_npy,index_rate,if_f0,f0_file=f0_file)
-    audio_opt = vc.pipeline(hubert_model,
-                            net_g,
-                            sid,
-                            audio,
-                            input_audio,
-                            times,
-                            f0_up_key,
-                            f0_method,
-                            file_index,
-                            index_rate,
-                            if_f0,
-                            filter_radius,
-                            tgt_sr,
-                            resample_sr,
-                            rms_mix_rate,
-                            version,
-                            f0_file=f0_file)
+    audio_opt = vc.pipeline(
+        hubert_model,
+        net_g,
+        sid,
+        audio,
+        input_audio,
+        times,
+        f0_up_key,
+        f0_method,
+        file_index,
+        index_rate,
+        if_f0,
+        filter_radius,
+        tgt_sr,
+        resample_sr,
+        rms_mix_rate,
+        version,
+        f0_file=f0_file,
+    )
     print(times)
     return audio_opt
 
@@ -178,33 +201,45 @@ def get_vc(model_path):
     print("loading pth %s" % model_path)
     cpt = torch.load(model_path, map_location="cpu")
     tgt_sr = cpt["config"][-1]
-    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]  #n_spk
+    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]  # n_spk
     if_f0 = cpt.get("f0", 1)
-    if (if_f0 == 1):
+    if if_f0 == 1:
         net_g = SynthesizerTrnMs256NSFsid(*cpt["config"], is_half=args.is_half)
     else:
         net_g = SynthesizerTrnMs256NSFsid_nono(*cpt["config"])
     del net_g.enc_q
     print(net_g.load_state_dict(cpt["weight"], strict=False))  # 不加这一行清不干净，真奇葩
     net_g.eval().to(args.device)
-    if (args.is_half): net_g = net_g.half()
-    else: net_g = net_g.float()
+    if args.is_half:
+        net_g = net_g.half()
+    else:
+        net_g = net_g.float()
     vc = VC(tgt_sr, config)
     n_spk = cpt["config"][-3]
     # return {"visible": True,"maximum": n_spk, "__type__": "update"}
 
 
 get_vc(args.model)
-wav_opt = vc_single(0, args.input_audio, args.key, None, args.f0method,
-                    args.index, args.index_rate, args.filter_radius,
-                    args.resample_sr, args.rms_mix_rate, args.version)
+wav_opt = vc_single(
+    0,
+    args.input_audio,
+    args.key,
+    None,
+    args.f0method,
+    args.index,
+    args.index_rate,
+    args.filter_radius,
+    args.resample_sr,
+    args.rms_mix_rate,
+    args.version,
+)
 
 
-t = time.strftime('%Y%m%d%H%M%S', time.localtime())
+t = time.strftime("%Y%m%d%H%M%S", time.localtime())
 if not args.output:
-    input_name = os.path.basename(args.input_audio).split('.')[0]
-    model_name = os.path.basename(args.model).split('.')[0]
-    opt_path = f'output/{input_name}_{model_name}_{args.index_rate}_{args.key}_{args.f0method}_{t}.wav'
+    input_name = os.path.basename(args.input_audio).split(".")[0]
+    model_name = os.path.basename(args.model).split(".")[0]
+    opt_path = f"output/{input_name}_{model_name}_{args.index_rate}_{args.key}_{args.f0method}_{t}.wav"
 else:
     opt_path = args.output
 wavfile.write(opt_path, tgt_sr, wav_opt)
@@ -212,4 +247,4 @@ wavfile.write(opt_path, tgt_sr, wav_opt)
 end_time = time.time()
 used_time = end_time - start_time
 
-print(f'done, used {used_time} seconds.')
+print(f"done, used {used_time} seconds.")

@@ -355,7 +355,7 @@ class VC(object):
             pitchf = torch.tensor(pitchf, device=self.device).unsqueeze(0).float()
         t2 = ttime()
         times[1] += t2 - t1
-        for t in (opt_ts):
+        for t in opt_ts:
             t = t // self.window * self.window
             if if_f0 == 1:
                 audio_opt.append(
