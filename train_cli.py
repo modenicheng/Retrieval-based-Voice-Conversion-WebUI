@@ -28,21 +28,35 @@ else:
     if_gpu_ok = False
     for i in range(ngpu):
         gpu_name = torch.cuda.get_device_name(i)
-        if ("10" in gpu_name or "16" in gpu_name or "20" in gpu_name
-                or "30" in gpu_name or "40" in gpu_name
-                or "A2" in gpu_name.upper() or "A3" in gpu_name.upper()
-                or "A4" in gpu_name.upper() or "P4" in gpu_name.upper()
-                or "A50" in gpu_name.upper() or "70" in gpu_name
-                or "80" in gpu_name or "90" in gpu_name
-                or "M4" in gpu_name.upper() or "T4" in gpu_name.upper()
-                or "TITAN"
-                in gpu_name.upper()):  # A10#A100#V100#A40#P40#M40#K80#A4500
+        if (
+            "10" in gpu_name
+            or "16" in gpu_name
+            or "20" in gpu_name
+            or "30" in gpu_name
+            or "40" in gpu_name
+            or "A2" in gpu_name.upper()
+            or "A3" in gpu_name.upper()
+            or "A4" in gpu_name.upper()
+            or "P4" in gpu_name.upper()
+            or "A50" in gpu_name.upper()
+            or "70" in gpu_name
+            or "80" in gpu_name
+            or "90" in gpu_name
+            or "M4" in gpu_name.upper()
+            or "T4" in gpu_name.upper()
+            or "TITAN" in gpu_name.upper()
+        ):  # A10#A100#V100#A40#P40#M40#K80#A4500
             if_gpu_ok = True  # 至少有一张能用的N卡
             gpu_infos.append("%s\t%s" % (i, gpu_name))
             mem.append(
                 int(
-                    torch.cuda.get_device_properties(i).total_memory / 1024 /
-                    1024 / 1024 + 0.4))
+                    torch.cuda.get_device_properties(i).total_memory
+                    / 1024
+                    / 1024
+                    / 1024
+                    + 0.4
+                )
+            )
 if if_gpu_ok == True and len(gpu_infos) > 0:
     gpu_info = "\n".join(gpu_infos)
     default_batch_size = min(mem) // 2
@@ -85,12 +99,14 @@ def preprocess_dataset(trainset_dir, exp_dir, sr, n_p):
     os.makedirs("%s/logs/%s" % (now_dir, exp_dir), exist_ok=True)
     f = open("%s/logs/%s/preprocess.log" % (now_dir, exp_dir), "w")
     f.close()
-    cmd = (config.python_cmd +
-           " trainset_preprocess_pipeline_print.py %s %s %s %s/logs/%s " %
-           (trainset_dir, sr, n_p, now_dir, exp_dir) + str(config.noparallel))
+    cmd = (
+        config.python_cmd
+        + " trainset_preprocess_pipeline_print.py %s %s %s %s/logs/%s "
+        % (trainset_dir, sr, n_p, now_dir, exp_dir)
+        + str(config.noparallel)
+    )
     print(cmd)
-    p = Popen(cmd,
-              shell=True)  # , stdin=PIPE, stdout=PIPE,stderr=PIPE,cwd=now_dir
+    p = Popen(cmd, shell=True)  # , stdin=PIPE, stdout=PIPE,stderr=PIPE,cwd=now_dir
     ##煞笔gr, popen read都非得全跑完了再一次性读取, 不用gr就正常读一句输出一句;只能额外弄出一个文本流定时读
     done = [False]
     threading.Thread(
@@ -117,8 +133,7 @@ def extract_f0_feature(gpus, n_p, f0method, if_f0, exp_dir, version19):
             f0method,
         )
         print(cmd)
-        p = Popen(cmd, shell=True,
-                  cwd=now_dir)  # , stdin=PIPE, stdout=PIPE,stderr=PIPE
+        p = Popen(cmd, shell=True, cwd=now_dir)  # , stdin=PIPE, stdout=PIPE,stderr=PIPE
         ###煞笔gr, popen read都非得全跑完了再一次性读取, 不用gr就正常读一句输出一句;只能额外弄出一个文本流定时读
         done = [False]
         threading.Thread(
@@ -139,16 +154,19 @@ def extract_f0_feature(gpus, n_p, f0method, if_f0, exp_dir, version19):
     leng = len(gpus)
     ps = []
     for idx, n_g in enumerate(gpus):
-        cmd = (config.python_cmd +
-               " extract_feature_print_cli.py %s %s %s %s %s/logs/%s %s" % (
-                   config.device,
-                   leng,
-                   idx,
-                   n_g,
-                   now_dir,
-                   exp_dir,
-                   version19,
-               ))
+        cmd = (
+            config.python_cmd
+            + " extract_feature_print_cli.py %s %s %s %s %s/logs/%s %s"
+            % (
+                config.device,
+                leng,
+                idx,
+                n_g,
+                now_dir,
+                exp_dir,
+                version19,
+            )
+        )
         print(cmd)
         p = Popen(
             cmd, shell=True, cwd=now_dir
@@ -186,9 +204,11 @@ def click_train(
     exp_dir = "%s/logs/%s" % (now_dir, exp_dir1)
     os.makedirs(exp_dir, exist_ok=True)
     gt_wavs_dir = "%s/0_gt_wavs" % (exp_dir)
-    feature_dir = ("%s/3_feature256" %
-                   (exp_dir) if version19 == "v1" else "%s/3_feature768" %
-                   (exp_dir))
+    feature_dir = (
+        "%s/3_feature256" % (exp_dir)
+        if version19 == "v1"
+        else "%s/3_feature768" % (exp_dir)
+    )
     if if_f0_3:
         f0_dir = "%s/2a_f0" % (exp_dir)
         f0nsf_dir = "%s/2b-f0nsf" % (exp_dir)
@@ -196,45 +216,54 @@ def click_train(
             set([name.split(".")[0] for name in os.listdir(gt_wavs_dir)])
             & set([name.split(".")[0] for name in os.listdir(feature_dir)])
             & set([name.split(".")[0] for name in os.listdir(f0_dir)])
-            & set([name.split(".")[0] for name in os.listdir(f0nsf_dir)]))
+            & set([name.split(".")[0] for name in os.listdir(f0nsf_dir)])
+        )
     else:
-        names = set([
-            name.split(".")[0] for name in os.listdir(gt_wavs_dir)
-        ]) & set([name.split(".")[0] for name in os.listdir(feature_dir)])
+        names = set([name.split(".")[0] for name in os.listdir(gt_wavs_dir)]) & set(
+            [name.split(".")[0] for name in os.listdir(feature_dir)]
+        )
     opt = []
-    print('正在划分数据集 生成filelist')
+    print("正在划分数据集 生成filelist")
     for name in tqdm(names):
         if if_f0_3:
-            opt.append("%s/%s.wav|%s/%s.npy|%s/%s.wav.npy|%s/%s.wav.npy|%s" % (
-                gt_wavs_dir.replace("\\", "\\\\"),
-                name,
-                feature_dir.replace("\\", "\\\\"),
-                name,
-                f0_dir.replace("\\", "\\\\"),
-                name,
-                f0nsf_dir.replace("\\", "\\\\"),
-                name,
-                spk_id5,
-            ))
+            opt.append(
+                "%s/%s.wav|%s/%s.npy|%s/%s.wav.npy|%s/%s.wav.npy|%s"
+                % (
+                    gt_wavs_dir.replace("\\", "\\\\"),
+                    name,
+                    feature_dir.replace("\\", "\\\\"),
+                    name,
+                    f0_dir.replace("\\", "\\\\"),
+                    name,
+                    f0nsf_dir.replace("\\", "\\\\"),
+                    name,
+                    spk_id5,
+                )
+            )
         else:
-            opt.append("%s/%s.wav|%s/%s.npy|%s" % (
-                gt_wavs_dir.replace("\\", "\\\\"),
-                name,
-                feature_dir.replace("\\", "\\\\"),
-                name,
-                spk_id5,
-            ))
+            opt.append(
+                "%s/%s.wav|%s/%s.npy|%s"
+                % (
+                    gt_wavs_dir.replace("\\", "\\\\"),
+                    name,
+                    feature_dir.replace("\\", "\\\\"),
+                    name,
+                    spk_id5,
+                )
+            )
     fea_dim = 256 if version19 == "v1" else 768
     if if_f0_3:
         for _ in range(2):
             opt.append(
                 "%s/logs/mute/0_gt_wavs/mute%s.wav|%s/logs/mute/3_feature%s/mute.npy|%s/logs/mute/2a_f0/mute.wav.npy|%s/logs/mute/2b-f0nsf/mute.wav.npy|%s"
-                % (now_dir, sr2, now_dir, fea_dim, now_dir, now_dir, spk_id5))
+                % (now_dir, sr2, now_dir, fea_dim, now_dir, now_dir, spk_id5)
+            )
     else:
         for _ in range(2):
             opt.append(
                 "%s/logs/mute/0_gt_wavs/mute%s.wav|%s/logs/mute/3_feature%s/mute.npy|%s"
-                % (now_dir, sr2, now_dir, fea_dim, spk_id5))
+                % (now_dir, sr2, now_dir, fea_dim, spk_id5)
+            )
     shuffle(opt)
     with open("%s/filelist.txt" % exp_dir, "w") as f:
         f.write("\n".join(opt))
@@ -244,8 +273,8 @@ def click_train(
     print("use gpus:", gpus16)
     if gpus16:
         cmd = (
-            config.python_cmd +
-            " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -g %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
+            config.python_cmd
+            + " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -g %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
             % (
                 exp_dir1,
                 sr2,
@@ -260,11 +289,12 @@ def click_train(
                 1 if if_cache_gpu17 == True else 0,
                 1 if if_save_every_weights18 == True else 0,
                 version19,
-            ))
+            )
+        )
     else:
         cmd = (
-            config.python_cmd +
-            " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
+            config.python_cmd
+            + " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
             % (
                 exp_dir1,
                 sr2,
@@ -278,7 +308,8 @@ def click_train(
                 1 if if_cache_gpu17 == True else 0,
                 1 if if_save_every_weights18 == True else 0,
                 version19,
-            ))
+            )
+        )
     print(cmd)
     p = Popen(cmd, shell=True, cwd=now_dir)
     p.wait()
@@ -289,9 +320,11 @@ def click_train(
 def train_index(exp_dir1, version19):
     exp_dir = "%s/logs/%s" % (now_dir, exp_dir1)
     os.makedirs(exp_dir, exist_ok=True)
-    feature_dir = ("%s/3_feature256" %
-                   (exp_dir) if version19 == "v1" else "%s/3_feature768" %
-                   (exp_dir))
+    feature_dir = (
+        "%s/3_feature256" % (exp_dir)
+        if version19 == "v1"
+        else "%s/3_feature768" % (exp_dir)
+    )
     if os.path.exists(feature_dir) == False:
         return "请先进行特征提取!"
     listdir_res = list(os.listdir(feature_dir))
@@ -311,8 +344,7 @@ def train_index(exp_dir1, version19):
     infos = []
     infos.append("%s,%s" % (big_npy.shape, n_ivf))
     yield "\n".join(infos)
-    index = faiss.index_factory(256 if version19 == "v1" else 768,
-                                "IVF%s,Flat" % n_ivf)
+    index = faiss.index_factory(256 if version19 == "v1" else 768, "IVF%s,Flat" % n_ivf)
     # index = faiss.index_factory(256if version19=="v1"else 768, "IVF%s,PQ128x4fs,RFlat"%n_ivf)
     infos.append("training")
     yield "\n".join(infos)
@@ -321,22 +353,24 @@ def train_index(exp_dir1, version19):
     index.train(big_npy)
     faiss.write_index(
         index,
-        "%s/trained_IVF%s_Flat_nprobe_%s_%s.index" %
-        (exp_dir, n_ivf, index_ivf.nprobe, version19),
+        "%s/trained_IVF%s_Flat_nprobe_%s_%s.index"
+        % (exp_dir, n_ivf, index_ivf.nprobe, version19),
     )
     # faiss.write_index(index, '%s/trained_IVF%s_Flat_FastScan_%s.index'%(exp_dir,n_ivf,version19))
     infos.append("adding")
     yield "\n".join(infos)
     batch_size_add = 8192
     for i in tqdm(range(0, big_npy.shape[0], batch_size_add)):
-        index.add(big_npy[i:i + batch_size_add])
+        index.add(big_npy[i : i + batch_size_add])
     faiss.write_index(
         index,
-        "%s/added_IVF%s_Flat_nprobe_%s_%s.index" %
-        (exp_dir, n_ivf, index_ivf.nprobe, version19),
+        "%s/added_IVF%s_Flat_nprobe_%s_%s.index"
+        % (exp_dir, n_ivf, index_ivf.nprobe, version19),
     )
-    infos.append("成功构建索引，added_IVF%s_Flat_nprobe_%s_%s.index" %
-                 (n_ivf, index_ivf.nprobe, version19))
+    infos.append(
+        "成功构建索引，added_IVF%s_Flat_nprobe_%s_%s.index"
+        % (n_ivf, index_ivf.nprobe, version19)
+    )
     # faiss.write_index(index, '%s/added_IVF%s_Flat_FastScan_%s.index'%(exp_dir,n_ivf,version19))
     # infos.append("成功构建索引，added_IVF%s_Flat_FastScan_%s.index"%(n_ivf,version19))
     yield "\n".join(infos)
@@ -372,17 +406,21 @@ def train1key(
     preprocess_log_path = "%s/preprocess.log" % model_log_dir
     extract_f0_feature_log_path = "%s/extract_f0_feature.log" % model_log_dir
     gt_wavs_dir = "%s/0_gt_wavs" % model_log_dir
-    feature_dir = ("%s/3_feature256" %
-                   model_log_dir if version19 == "v1" else "%s/3_feature768" %
-                   model_log_dir)
+    feature_dir = (
+        "%s/3_feature256" % model_log_dir
+        if version19 == "v1"
+        else "%s/3_feature768" % model_log_dir
+    )
 
     os.makedirs(model_log_dir, exist_ok=True)
     #########step1:处理数据
     open(preprocess_log_path, "w").close()
-    cmd = (config.python_cmd +
-           " trainset_preprocess_pipeline_print.py %s %s %s %s " %
-           (trainset_dir4, sr_dict[sr2], np7, model_log_dir) +
-           str(config.noparallel))
+    cmd = (
+        config.python_cmd
+        + " trainset_preprocess_pipeline_print.py %s %s %s %s "
+        % (trainset_dir4, sr_dict[sr2], np7, model_log_dir)
+        + str(config.noparallel)
+    )
     print(("step1:正在处理数据"))
     print(cmd)
     p = Popen(cmd, shell=True)
@@ -439,52 +477,61 @@ def train1key(
             set([name.split(".")[0] for name in os.listdir(gt_wavs_dir)])
             & set([name.split(".")[0] for name in os.listdir(feature_dir)])
             & set([name.split(".")[0] for name in os.listdir(f0_dir)])
-            & set([name.split(".")[0] for name in os.listdir(f0nsf_dir)]))
+            & set([name.split(".")[0] for name in os.listdir(f0nsf_dir)])
+        )
     else:
-        names = set([
-            name.split(".")[0] for name in os.listdir(gt_wavs_dir)
-        ]) & set([name.split(".")[0] for name in os.listdir(feature_dir)])
+        names = set([name.split(".")[0] for name in os.listdir(gt_wavs_dir)]) & set(
+            [name.split(".")[0] for name in os.listdir(feature_dir)]
+        )
     opt = []
     for name in names:
         if if_f0_3:
-            opt.append("%s/%s.wav|%s/%s.npy|%s/%s.wav.npy|%s/%s.wav.npy|%s" % (
-                gt_wavs_dir.replace("\\", "\\\\"),
-                name,
-                feature_dir.replace("\\", "\\\\"),
-                name,
-                f0_dir.replace("\\", "\\\\"),
-                name,
-                f0nsf_dir.replace("\\", "\\\\"),
-                name,
-                spk_id5,
-            ))
+            opt.append(
+                "%s/%s.wav|%s/%s.npy|%s/%s.wav.npy|%s/%s.wav.npy|%s"
+                % (
+                    gt_wavs_dir.replace("\\", "\\\\"),
+                    name,
+                    feature_dir.replace("\\", "\\\\"),
+                    name,
+                    f0_dir.replace("\\", "\\\\"),
+                    name,
+                    f0nsf_dir.replace("\\", "\\\\"),
+                    name,
+                    spk_id5,
+                )
+            )
         else:
-            opt.append("%s/%s.wav|%s/%s.npy|%s" % (
-                gt_wavs_dir.replace("\\", "\\\\"),
-                name,
-                feature_dir.replace("\\", "\\\\"),
-                name,
-                spk_id5,
-            ))
+            opt.append(
+                "%s/%s.wav|%s/%s.npy|%s"
+                % (
+                    gt_wavs_dir.replace("\\", "\\\\"),
+                    name,
+                    feature_dir.replace("\\", "\\\\"),
+                    name,
+                    spk_id5,
+                )
+            )
     fea_dim = 256 if version19 == "v1" else 768
     if if_f0_3:
         for _ in range(2):
             opt.append(
                 "%s/logs/mute/0_gt_wavs/mute%s.wav|%s/logs/mute/3_feature%s/mute.npy|%s/logs/mute/2a_f0/mute.wav.npy|%s/logs/mute/2b-f0nsf/mute.wav.npy|%s"
-                % (now_dir, sr2, now_dir, fea_dim, now_dir, now_dir, spk_id5))
+                % (now_dir, sr2, now_dir, fea_dim, now_dir, now_dir, spk_id5)
+            )
     else:
         for _ in range(2):
             opt.append(
                 "%s/logs/mute/0_gt_wavs/mute%s.wav|%s/logs/mute/3_feature%s/mute.npy|%s"
-                % (now_dir, sr2, now_dir, fea_dim, spk_id5))
+                % (now_dir, sr2, now_dir, fea_dim, spk_id5)
+            )
     shuffle(opt)
     with open("%s/filelist.txt" % model_log_dir, "w") as f:
         f.write("\n".join(opt))
     print("write filelist done")
     if gpus16:
         cmd = (
-            config.python_cmd +
-            " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -g %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
+            config.python_cmd
+            + " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -g %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
             % (
                 exp_dir1,
                 sr2,
@@ -499,11 +546,12 @@ def train1key(
                 1 if if_cache_gpu17 == True else 0,
                 1 if if_save_every_weights18 == True else 0,
                 version19,
-            ))
+            )
+        )
     else:
         cmd = (
-            config.python_cmd +
-            " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
+            config.python_cmd
+            + " train_nsf_sim_cache_sid_load_pretrain.py -e %s -sr %s -f0 %s -bs %s -te %s -se %s -pg %s -pd %s -l %s -c %s -sw %s -v %s"
             % (
                 exp_dir1,
                 sr2,
@@ -517,7 +565,8 @@ def train1key(
                 1 if if_cache_gpu17 == True else 0,
                 1 if if_save_every_weights18 == True else 0,
                 version19,
-            ))
+            )
+        )
     print(cmd)
     p = Popen(cmd, shell=True, cwd=now_dir)
     p.wait()
@@ -538,99 +587,107 @@ def train1key(
     # n_ivf =  big_npy.shape[0] // 39
     n_ivf = min(int(16 * np.sqrt(big_npy.shape[0])), big_npy.shape[0] // 39)
     print("%s,%s" % (big_npy.shape, n_ivf))
-    index = faiss.index_factory(256 if version19 == "v1" else 768,
-                                "IVF%s,Flat" % n_ivf)
+    index = faiss.index_factory(256 if version19 == "v1" else 768, "IVF%s,Flat" % n_ivf)
     print("training index")
     index_ivf = faiss.extract_index_ivf(index)  #
     index_ivf.nprobe = 1
     index.train(big_npy)
     faiss.write_index(
         index,
-        "%s/trained_IVF%s_Flat_nprobe_%s_%s.index" %
-        (model_log_dir, n_ivf, index_ivf.nprobe, version19),
+        "%s/trained_IVF%s_Flat_nprobe_%s_%s.index"
+        % (model_log_dir, n_ivf, index_ivf.nprobe, version19),
     )
     print("adding index")
     batch_size_add = 8192
     for i in range(0, big_npy.shape[0], batch_size_add):
-        index.add(big_npy[i:i + batch_size_add])
+        index.add(big_npy[i : i + batch_size_add])
     faiss.write_index(
         index,
-        "%s/added_IVF%s_Flat_nprobe_%s_%s.index" %
-        (model_log_dir, n_ivf, index_ivf.nprobe, version19),
+        "%s/added_IVF%s_Flat_nprobe_%s_%s.index"
+        % (model_log_dir, n_ivf, index_ivf.nprobe, version19),
     )
-    print("成功构建索引, added_IVF%s_Flat_nprobe_%s_%s.index" %
-                       (n_ivf, index_ivf.nprobe, version19))
+    print(
+        "成功构建索引, added_IVF%s_Flat_nprobe_%s_%s.index"
+        % (n_ivf, index_ivf.nprobe, version19)
+    )
     print(("全流程结束！"))
 
 
 par = argparse.ArgumentParser()
 
 # modes
-par.add_argument('mode', help='执行任务的类型 可选：preprocess f0 train', choices=["preprocess", "f0", "train"])
+par.add_argument(
+    "mode", help="执行任务的类型 可选：preprocess f0 train", choices=["preprocess", "f0", "train"]
+)
 
 # preprocess
-par.add_argument('dataset_path')
-par.add_argument('exp_dir')
-par.add_argument('-sr',
-                 '--sample_rate',
-                 help='可选值32k 40k 48k',
-                 type=str,
-                 default='48k')
-par.add_argument('-np',
-                 '--n_p',
-                 help='number of process cpus',
-                 default=config.n_cpu)
+par.add_argument("dataset_path")
+par.add_argument("exp_dir")
+par.add_argument("-sr", "--sample_rate", help="可选值32k 40k 48k", type=str, default="48k")
+par.add_argument("-np", "--n_p", help="number of process cpus", default=config.n_cpu)
 
 # extract_f0_feature
-par.add_argument('-gpus',
-                 '--gpus',
-                 type=str,
-                 help='显卡选择 格式：0-1-2 表示使用卡0和卡1和卡2',
-                 default='0')
-par.add_argument('-if',
-                 '--if_f0',
-                 type=bool,
-                 help='模型是否带音高指导(唱歌一定要, 语音可以不要)',
-                 default=True)
-par.add_argument('-v',
-                 '--version',
-                 type=str,
-                 help='版本(目前仅40k支持了v2)',
-                 default='v1',
-                 choices=['v1', 'v2'])
-par.add_argument('-f',
-                 '--f0method',
-                 type=str,
-                 help='选择音高提取算法:输入歌声可用pm提速,高质量语音但CPU差可用dio提速,harvest质量更好但慢',
-                 choices=["pm", "harvest", "dio"],
-                 default='harvest')
+par.add_argument(
+    "-gpus", "--gpus", type=str, help="显卡选择 格式：0-1-2 表示使用卡0和卡1和卡2", default="0"
+)
+par.add_argument(
+    "-if", "--if_f0", type=bool, help="模型是否带音高指导(唱歌一定要, 语音可以不要)", default=True
+)
+par.add_argument(
+    "-v",
+    "--version",
+    type=str,
+    help="版本(目前仅40k支持了v2)",
+    default="v1",
+    choices=["v1", "v2"],
+)
+par.add_argument(
+    "-f",
+    "--f0method",
+    type=str,
+    help="选择音高提取算法:输入歌声可用pm提速,高质量语音但CPU差可用dio提速,harvest质量更好但慢",
+    choices=["pm", "harvest", "dio"],
+    default="harvest",
+)
 
 # train
-par.add_argument('-s', '--spk_id', type=str, help='speaker id', default='0')
-par.add_argument('-se', '--save_epoch', type=int, help='保存频率', default=5)
-par.add_argument('-e', '--total_epoch', type=int, help='总训练轮数total_epoch', default=40 )
-par.add_argument('-bs',
-                 '--batch_size',
-                 type=int,
-                 help="每张显卡的batch_size",
-                 default=default_batch_size)
-par.add_argument('-sl',
-                 '--if_save_latest',
-                 type=bool,
-                 help='是否仅保存最新的ckpt文件以节省硬盘空间',
-                 default=True)
-par.add_argument('-cg',
-                 '--if_cache_gpu',
-                 type=bool,
-                 help='是否缓存所有训练集至显存. 10min以下小数据可缓存以加速训练, 大数据缓存会炸显存也加不了多少速',
-                 default=False)
-par.add_argument('-sew',
-                 '--if_save_every_weights',
-                 type=bool,
-                 help="是否在每次保存时间点将最终小模型保存至weights文件夹",
-                 default=True)
-par.add_argument('-pg', '--pretrained_g', type=str, help='加载预训练底模G路径', default="pretrained/f0G48k.pth")
-par.add_argument('-pd', '--pretrained_d', type=str, help='加载预训练底模D路径', default="pretrained/f0D48k.pth")
+par.add_argument("-s", "--spk_id", type=str, help="speaker id", default="0")
+par.add_argument("-se", "--save_epoch", type=int, help="保存频率", default=5)
+par.add_argument("-e", "--total_epoch", type=int, help="总训练轮数total_epoch", default=40)
+par.add_argument(
+    "-bs", "--batch_size", type=int, help="每张显卡的batch_size", default=default_batch_size
+)
+par.add_argument(
+    "-sl", "--if_save_latest", type=bool, help="是否仅保存最新的ckpt文件以节省硬盘空间", default=True
+)
+par.add_argument(
+    "-cg",
+    "--if_cache_gpu",
+    type=bool,
+    help="是否缓存所有训练集至显存. 10min以下小数据可缓存以加速训练, 大数据缓存会炸显存也加不了多少速",
+    default=False,
+)
+par.add_argument(
+    "-sew",
+    "--if_save_every_weights",
+    type=bool,
+    help="是否在每次保存时间点将最终小模型保存至weights文件夹",
+    default=True,
+)
+par.add_argument(
+    "-pg",
+    "--pretrained_g",
+    type=str,
+    help="加载预训练底模G路径",
+    default="pretrained/f0G48k.pth",
+)
+par.add_argument(
+    "-pd",
+    "--pretrained_d",
+    type=str,
+    help="加载预训练底模D路径",
+    default="pretrained/f0D48k.pth",
+)
 
 args = par.parse_args()
 
@@ -654,18 +711,18 @@ total_epoch = args.total_epoch
 batch_size = args.batch_size
 if_save_latest = args.if_save_latest
 if_cache_gpu = args.if_cache_gpu
-if_save_every_weights =args.if_save_every_weights
+if_save_every_weights = args.if_save_every_weights
 pretrained_G = args.pretrained_g
 pretrained_D = args.pretrained_d
 
-# mode 
+# mode
 mode = args.mode
 
-if mode == 'preprocess':
+if mode == "preprocess":
     preprocess_dataset(dataset_path, exp_dir, sr, n_p)
-elif mode =='f0':
-    extract_f0_feature(gpus, n_p,f0method, if_f0,exp_dir, version)
-elif mode=='train':
+elif mode == "f0":
+    extract_f0_feature(gpus, n_p, f0method, if_f0, exp_dir, version)
+elif mode == "train":
     click_train(
         exp_dir,
         sr,
